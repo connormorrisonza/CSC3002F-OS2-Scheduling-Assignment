@@ -1,0 +1,28 @@
+---
+title: "CSC3002F - Operating Systems II"
+subtitle: "Scheduling Assignment"
+author: "Connor Morrison (MRRCON006)"
+date: today
+date-format: "Do MMMM YYYY"
+format: 
+  pdf:
+    toc: true
+  
+---
+
+```{r, include=FALSE}
+pkg_vec <- c("ggplot2","ggthemes","broom","kableExtra","tidyr")
+for (x in pkg_vec) {
+  if (!requireNamespace(x, quietly = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+  }
+  library(x, character.only = TRUE)
+}
+
+```
+
+```{r, include=FALSE}
+#read.csv("")
+```
+
+#
