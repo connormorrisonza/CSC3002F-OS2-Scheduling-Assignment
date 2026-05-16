@@ -4,21 +4,14 @@
 package barScheduling;
 // the main class, starts all threads
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 public class SchedulingSimulation {
     static int noPatrons = 10;
-    static int sched = 3; // 0=FCFS, 1=SJF, 2=Priority, 3=MLFQ
+    static int sched = 0; // 0=FCFS, 1=SJF, 2=Priority, 3=MLFQ
     static int s = 0;
     static long seed = 0;
     static CountDownLatch startSignal;

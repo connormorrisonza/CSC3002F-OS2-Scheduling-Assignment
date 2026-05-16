@@ -340,8 +340,23 @@ public class Barman extends Thread {
         Long arrival_time = order.getArrivalTime();
         Long completion_time = order.getCompletionTime();
         Long turnaround_time = order.getTurnaroundTime();
+        Long waiting_time = order.getWaitingTime();
         int imbibing_time = order.getImbibingTime();
+        Long enqueue_time = order.getEnqueueTime();
+        int execution_time = order.getExecutionTime();
+        long response_time = order.getResponseTime();
+        long service_start_time = order.getServiceStartTime();
+
+        String drink = order.getDrinkName();
+        int patron = order.getOrderer();
+        int priority = order.getPriority();
+        int queue_level = order.getQueueLevel();
+        long seq_no = order.getSequenceNumber();
+
         
+        System.err.println(patron + "," + drink + "," + priority + "," + queue_level + "," + seq_no + "," + service_start_time + "," 
+        + arrival_time + "," + completion_time + "," + waiting_time + "," + imbibing_time + "," + turnaround_time + "," 
+        + enqueue_time + "," + execution_time + "," + response_time);
     }
 
 }
