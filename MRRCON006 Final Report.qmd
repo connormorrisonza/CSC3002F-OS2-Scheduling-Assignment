@@ -11,7 +11,7 @@ format:
 ---
 
 ```{r, include=FALSE}
-pkg_vec <- c("ggplot2","ggthemes","broom","kableExtra","tidyr")
+pkg_vec <- c("ggplot2","ggthemes","broom","kableExtra","tidyr","tidyverse")
 for (x in pkg_vec) {
   if (!requireNamespace(x, quietly = TRUE)) {
     install.packages(x, dependencies = TRUE)
@@ -22,7 +22,41 @@ for (x in pkg_vec) {
 ```
 
 ```{r, include=FALSE}
-#read.csv("")3d
+df = read_csv("simulation_results.csv")
+```
+
+```{r}
+patron_summary <- df %>%
+  group_by(total_patrons, schedalg, seed, patron) %>%
+  summarise(
+    total_waiting = sum(waiting_time),
+    total_turnaround = sum(turnaround_time),
+    num_orders = n(),
+    .groups = 'drop'
+  )
+```
+
+```{r}
+ggplot(df, aes(x=schedalg, y=waiting_time, fill=schedalg)) +
+  geom_boxplot() +
+  facet_wrap(~total_patrons) +
+  labs(title="Waiting Time Distribution by Algorithm")
+
+# 1. Fit the model
+# We use factor() for sched_alg because it's a category, not a continuous number
+fit <- lm(waiting_time ~ factor(schedalg) + total_patrons + drink, data = df)
+
+# 2. View the significance (p-values) and magnitudes (coefficients)
+summary(fit)
+
+# 3. Check for Fairness/Starvation by plotting residuals
+plot(fit, which = 1)
+```
+```{r}
+# Compare means
+model_speed <- lm(waiting_time ~ factor(schedalg) + total_patrons, data = df)
+summary(model_speed)
+plot(model_speed)
 ```
 
 #
