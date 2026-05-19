@@ -17,7 +17,7 @@ format:
 ---
 
 ```{r, include=FALSE}
-pkg_vec <- c("ggplot2","ggthemes","ggh4x","broom","kableExtra","tidyr","tidyverse","emmeans","effectsize","car","dplyr")
+pkg_vec <- c("ggplot2","ggthemes","ggh4x","broom","kableExtra","tidyr","tidyverse","dplyr")
 for (x in pkg_vec) {
   if (!requireNamespace(x, quietly = TRUE)) {
     install.packages(x, dependencies = TRUE)
@@ -144,11 +144,13 @@ if(sum(workload_validation$unique_algs) == 4*count(workload_validation)) {cat("P
 
 # Results and Analysis
 
+*In this analysis,* ***larger drinks*** *will be used in place of* ***drinks with longer preparation time,*** *and* ***smaller drinks*** *will be used in place of* ***drinks with shorter preparation time.***
+
 ## Per-Order metrics
 
-What does this mean in terms of the bar and CPU scheduling
+The per-order metrics help us analyse the overall performance and efficiency the CPU scheduling algorithms (Allegra the bartender).
 
-### Response time
+### Response and waiting time
 
 ```{r, echo=FALSE}
 #| label: fig-order-response
@@ -162,11 +164,6 @@ ggplot(df, aes(x=schedalg, y=response_time, fill=schedalg)) +
   labs(title="Per-Order Response Time Distribution by Algorithm (with mean)")
 ```
 
-As seen in @fig-order-response.
-
-
-### Waiting time
-
 ```{r, echo=FALSE}
 #| label: fig-order-waiting
 #| fig-cap: "Boxplots of Per-Order Waiting Times"
@@ -178,11 +175,23 @@ ggplot(df, aes(x=schedalg, y=waiting_time, fill=schedalg)) +
   labs(title="Per-Order Waiting Time Distribution by Algorithm (with mean)")
 ```
 
-As seen in @fig-order-waiting
+When comparing the Per-Order Response (@fig-order-response) and Per-Order Waiting (@fig-order-waiting), we observe that the plots are effectively identical, so the results and analysis of per-order response and waiting times will be done in unison. This is an expected behaviour and is further evidence that the data generated is valid.
+
+Anaylsing the box-plots, we see that at `total_patrons` = 5, the distributions for the response/waiting times are almost identical. This is noticeable by the mean and medians all being in-line with similar amounts of outliers. This shows us that at a low workload, the effect of the individual scheduling algorithm is unnoticeable.
+
+We can see that between `total_patrons` equals 20 and 50, the response/waiting time distributions of each algorithm are almost identical in shape, with the only difference being an increase in magnitude.
+
+Both FCFS and MLFQ have means and medians that are very close together, this implies that the waiting/response times are more evenly distributed on a per-order basis.
+
+For FCFS, we can see that there are little to no outliers, with a lower concentration of short waiting/response times. This is an expected result as it is an inherently fair algorithm.
+
+MLFQ has few outliers with a wider interval boxplot graph. Both SJF and Priority have plenty of outliers, but also have very high concentrations of very low waiting times. This is the expected result when considering the nature of these algorithms.
+
+SJF consistently has the shortest average waiting time, with Priority following closely behind and both FCFS and MLFQ having relatively much longer average waiting/response times.
 
 ## Per-Patron metrics
 
-What does this mean in terms of the bar and CPU scheduling
+These metrics show us the overall times that the patrons spend at the bar per night. Per-Patron metrics help us analyse the customer's satisfaction rate.
 
 ### Response and waiting time
 
@@ -207,6 +216,13 @@ ggplot(response_df, aes(x=schedalg, y=patron_response_time, fill=schedalg)) +
   labs(title="Per-Patron Response Time Distribution by Algorithm (with mean)")
 ```
 
+The per-patron response time distributions exhibit very similar properties to the per-order response times, especially for `total_patrons` = 5. 
+
+As for 20 and 50:
+
+MLFQ consistently displays the lowest median and mean values with the highest concentration of low per-patron response times, with few small outliers. FCFS and SJF have similar means, with SJF having a median close to MLFQ. Saying this, SJF has plenty of longer outliers, whereas, FCFS has a very uniform distribution with a much lower max per-patron response time.
+
+Priority has little outliers, but has by far the longest mean and median response time. It also has a long max response time and a very low concentration of low response times. This shows us that is consistently treats patrons the same way based on their priority.
 
 ```{r, echo=FALSE}
 #| label: fig-patron-waiting
@@ -224,7 +240,12 @@ ggplot(patron_df, aes(x=schedalg, y=total_wait, fill=schedalg)) +
   labs(title="Per-Patron Waiting Time Distribution by Algorithm (with mean)")
 ```
 
-We now analyse these figures.
+Similar to the per-order waiting times, we see that when `total_patrons` = 5, the choice of algorithm does not matter.
+
+But for the medium and high workloads, we observe that both graphs have a very similar shape. We see that there are few outliers for the medium workload and no outliers for the high workload. This shows us that on a patron-level the waiting time that one would experience is very predictable and consistent.
+
+We observe that the mean and median per-patron waiting times are lowest for SJF, then Priority, then decently higher for FCFS and MLFQ. This is very in line with what we expected for the average waiting times of these algorithms.
+
 
 ### Turnaround time
 
@@ -241,7 +262,13 @@ ggplot(patron_df, aes(x = schedalg, y = turnaround, fill = schedalg)) +
        y = "Turnaround Time (ms)", x = "Algorithm")
 ```
 
-The turnaround time.
+Similar to the per-patron waiting times, we see that when `total_patrons` = 5, the choice of algorithm does not matter.
+
+But for the medium and high workloads, we observe that both graphs have a very similar shape. We see that there are few outliers for the medium workload and no outliers for the high workload. This shows us that on a patron-level the turnaround time that one would experience is very predictable and consistent.
+
+We observe that the mean and median per-patron turnaround times are lowest for SJF, then Priority, then decently higher for FCFS and MLFQ. This is very in line with what we expected for the average turnaround times of these algorithms.
+
+These results much reflect the per-patron waiting times. This shows us that the preparation time of the drinks has no real effect on the turnaround times. This means that the time a person spends at the bar is predominantly dependent on the waiting time at the bar.
 
 ## Throughput
 
@@ -273,36 +300,30 @@ ggplot(relative_throughput, aes(x = as.factor(total_patrons), y = relative_perf,
        fill = "Algorithm")
 ```
 
-The throughput results.
+This graph shows us the average throughput of each algorithm relative to FCFS for different workloads.
 
-## Fairness and Predictability
+For a workload of 5 patrons, we see that FCFS is by far the most efficient algorithm. For larger workloads, we can see that Priority has by far the worst efficiency. For a workload of 20 patrons, we see that MLFQ is by far the most efficient algorithm. And for a workload of 50 patrons, we can see that SJF and MLQF have very similar overall efficiency. 
 
-```{r, echo=FALSE}
-#| label: fig-fairness
-#| fig-cap: "Trendlines of Total Waiting Time vs No. of Drinks Ordered"
+## Fairness
 
-# Fairness (and predictability) code block
+Priority as evident from @fig-patron-response: The results show us that priority is "fair to the system" showing us that for each priority level, the response times are very consistent. When looking at @fig-order-response we can also see that although the Priority algorithm is "fair to the system", it is unfair when looking at the per-order response and waiting times. i.e. if you have high priority, you will have a low response time. 
 
-# Calculate total wait and order size per patron
-fairness_df <- df %>%
-  group_by(total_patrons, schedalg, seed, patron) %>%
-  summarise(total_wait = sum(waiting_time), 
-            drinks_ordered = n(), .groups = 'drop')
+Similarly to Priority, SJF is an algorithm that is "fair to the system," @fig-patron-waiting, but when looking at @fig-patron-response and @fig-order-response we can see that SJF is unfair to larger drink orders and is always baised towards smaller drinks first. This means that SJF is unfair on a per-order level.
 
-ggplot(fairness_df, aes(x = drinks_ordered, y = total_wait, color = schedalg)) +
-  geom_smooth(method = "loess", se = TRUE, formula = y ~ x) + # Adds a trend line
-  facet_wrap(~total_patrons, scales = "free") +
-  labs(title = "Fairness: Total Wait Time vs. No. of Drinks Ordered",
-       x = "Number of Drinks Ordered", y = "Total Patron Wait (ms)")
-```
+Shown in @fig-patron-response and @fig-order-response, we can see that both FCFS and MLFQ are very fair algorithms (little to no outliers) with FCFS being the most fair and MLQF being just slightly less fair.
 
-The fairness of the algorithms.
+## Predictability
 
 ```{r, echo=FALSE}
 #| label: fig-predictability 
 #| fig-cap: "Predictability Score for Patron Waiting Time"
 
 # Predictability code block
+fairness_df <- df %>%
+  group_by(total_patrons, schedalg, seed, patron) %>%
+  summarise(total_wait = sum(waiting_time), 
+            drinks_ordered = n(), .groups = 'drop')
+
 predictability_df <- fairness_df %>%
   group_by(total_patrons, schedalg) %>%
   summarise(CV = sd(total_wait) / mean(total_wait), .groups = 'drop')
@@ -315,13 +336,43 @@ ggplot(predictability_df, aes(x = schedalg, y = CV, fill = schedalg)) +
        y = "CV (Index of Unpredictability)")
 ```
 
-Predictability of the algorithms.
+@fig-predictability substantiates our argument that the algorithm used with small workload is not important and quite erratic, as they all score poorly on the predictability score.
 
-## Possibility of starvation
+We can see that for higher workloads, SJF is very unpredictable which makes sense as if you order a large drink, you have no in cling for how many people you will end up waiting behind (unpredictably waiting time).
 
-As evident in @fig-order-waiting.
+We also see that FCFS, MLFQ, and Priority have very similar predictability scores for larger workloads, meaning that a patron can better predict how long they will be waiting in line for throughout the night. When we combine these results with the results shown in @fig-order-waiting we can see it is much harder to predict the per-order waiting time for the Priority. They also show that FCFS is the easiest to predict with MLFQ following closely behind. These results all make sense when you relate back to the fairness of the algorithm.
+
+## Possibility of Starvation
+
+As observed in the per-order waiting times, @fig-order-waiting, we see that for both SJF and Priority, there are many outliers with extremely large waiting times and the distributions are heavily skewed. This is evidence of starvation as for this to happen, some orders must be neglected for long periods of time. 
+
+In the case of SJF, the bartender will always serve patrons who order smaller drinks first, so when a patron orders a large drink they keep getting pushed to the back of the line until all patrons who order smaller drinks are served first. This means that SJF is highly prone to the possibility of starvation.
+
+In the case of Priority, the bartender will always serve patrons will a higher priority, so when a patron has a lower priority, they will be neglected until all patrons of higher priority are served. This means that Priority is also highly prone to the possibility of starvation.
+
+In @fig-order-waiting, MLFQ has a low amount of outliers. This means that there is still a low chance of starvation. This makes sense as there is some tiering to the algorithm so it is not completely fair.
+
+It is noticed in @fig-order-waiting that FCFS has no outliers for waiting times in a high workload scenario. This means that FCFS has 0 chance of starvation which logically makes sense. Since, as soon as you join the queue to be served you have a guarantee that you will be served in the same order.
 
 # Conclusions and Recommendations
+
+There are many factors that influence the decision of the best scheduling algorithm to satisfy a bar owner. On one hand, the algorithm with the highest throughput and lowest average waiting times (SJF) will result in the most nightly profit; but this will likely scare many patrons from returning if they felt like they were treated unfairly, and hence lowering the amount of recurring customers and long-term profit for the bar. So we want to find the algorithm that encourages more returning customers while not sacrificing too much nightly profit.
+
+It would also be wise to consider the simplicity of implementing the algorithm in a realistic setting, which would make MLFQ the least feasible algorithm. But we assume that, in this case, that is not a constraint. It also depends on the current popularity of the bar, as if there are very few customers, then FCFS performs the best, but as the popularity of the bar increases, the effectiveness of FCFS decreases. Since we do not know the popularity of the bar, we must recommend the most consistent algorithm over all workloads.
+
+Therefore MLFQ will be the best algorithm for Allegra the bartender as it has the best balance of algorithm efficiency, predictability, and fairness. MLQF consistently scored best or very near the best in terms of both efficiency and fairness of an algorithm. This choice will help the bar run under the best conditions where it both maximises the per-night and long-term profits of the bar.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
