@@ -13,7 +13,6 @@ format:
       opts_chunk: 
         dev: "png"
         dpi: 300
-  
 ---
 
 ```{r, include=FALSE}
@@ -27,6 +26,39 @@ for (x in pkg_vec) {
 
 ```
 
+# Introduction
+
+Allegra the barman is an abstraction of the low-level workings of a CPU. The study of CPU scheduling algorithms can be likened much to the analogy of a barman serving drinks at a bar, where each patron (customer) is a process and each of their drink orders is a CPU burst. In this analogy, Allegra the barman acts as the CPU and her method of serving patrons is a scheduling algorithm. This provides us with a real world example of what CPU scheduling algorithms do and what these algorithms aim to achieve.
+
+The CPU scheduling algorithms that will be tested within this analogy are First-Come First-Serve (FCFS), Shortest Job First (SJF), Priority, and Multilevel Feedback Queue (MLFQ). We are provided the information that none of the algorithms use pre-emption at the level of the individual drink order.
+
+We will evaluate the overall success of the algorithms by comparing their performances with respect to the response and waiting times (both per order, and the total per patron), and turnaround time, as well as throughput, predictability, fairness, and possibility of starvation.
+
+The goal of this assignment is to determine the CPU scheduling algorithm that, when applied to the bar setting, is to satisfy the bar owner. 
+
+In order to achieve maximum satisfaction, we need to serve as many customers in the shortest time frame (throughput), while at the same time, ensuring that all customers feel fairly treated such that they will, on average, have the best experience.
+
+Taking both of these things into account will help maximise nightly profit, while encouraging consequent visits, hopefully providing longer term success to the bar.
+
+# Methods
+
+One of the most important steps in the experimental process is creating valid and reliable data in a repeatable way. This process can be broken down into steps to first generate the data, and second, validate the data.
+
+![Optional Caption Text](Picture.png){width=100%}
+
+
+## Method of data generation
+
+We need to guarantee that every algorithm gets tested in the exact same circumstances. To ensure the reliability of the results, we must include multiple repetitions for each (total_patrons, scheduling_algorithm) combination. For the assumption of normality, according to the central limit theorem, it is a minimum requirement to have 30 observations per scenario. The java code given ensures that for some seed, the number of orders and the arrival time of the patrons remains constant. So we can loop from seed (1 to 30) to guaranteed unique
+
+To ensure that we fairly tested each algorithm
+
+To generate this data for the analysis of the scheduling algorithms, the following steps were taken.
+
+ - Complete the `recordCompletedOrder` function in `Barman.java` to print all of the per order metrics that the barman class provided in the format "patron,drink,priority,queue_level,seq_no,service_start_time,arrival_time,completion_time,waiting_time,imbibing_time,turnaround_time,enqueue_time,execution_time,response_time"
+
+ - Create a bash script that loops through
+
 ```{r, include=FALSE}
 df = read_csv("simulation_results.csv")
 df$total_patrons = factor(df$total_patrons)
@@ -36,148 +68,189 @@ df$priority = factor(df$priority)
 df$queue_level = factor(df$queue_level)
 ```
 
-# Introduction
+## Method of data validation
 
-Allegra the barman is an abstraction of the low-level workings of a CPU. The study of CPU scheduling algorithms can be likened much to the analogy of a barman serving drinks at a bar, where the overall goal is to most efficiently and effectively serve all customers such that the majority of customers will be satisfied with their experience.
+To validate the data and code for the analysis of the algorithms, we need to ensure that
 
-The goal of this assignment is to determine the CPU scheduling algorithm that, when applied to the bar setting, maximises satisfaction for the most customers.
+**(a)** the data is complete, **(b)** the data follows the basic CPU scheduling rules, and **(c)** the data produced identical workloads for each algorithm across seeds.
 
-# Methods
+### (a) Data completeness
 
-To generate the data
+We check that the correct amount of simulations was run and that there were no missing values
 
+```{r, echo=FALSE}
+# Check for expected number of observations
+expected_combinations <- df %>%
+  group_by(total_patrons, schedalg) %>%
+  summarise(seeds_count = n_distinct(seed), .groups = 'drop')
 
-# Results
+cat("Validation: Seeds per workload/algorithm combination:\n")
+kable(expected_combinations)
 
-```{r,echo=FALSE}
-
-averages <- df %>% group_by(total_patrons,schedalg, patron) %>% 
-  summarise(avg_waiting = mean(waiting_time),std_waiting = var(waiting_time), avg_turnaround = 
-            mean(turnaround_time), std_turnaround = var(turnaround_time), avg_response = mean(response_time), 
-            std_response = var(response_time), num_orders = n(), .groups = 'drop')
-
-ggplot(averages,aes(x=avg_response,fill=schedalg)) + geom_density(alpha = 0.5) + facet_wrap(~total_patrons, ncol = 1, scales = "free") + 
-  facetted_pos_scales(
-    x = list(
-      total_patrons == 5 ~ scale_x_continuous(limits = c(0, 50)),
-      total_patrons == 20 ~ scale_x_continuous(limits = c(0, 500)),
-      total_patrons == 50 ~ scale_x_continuous(limits = c(0, 2500))
-    )) + 
-  labs(title = "Distribution of Average Response Time by Workload",
-       x = "Average Response Time (ms)",
-       y = "Density")
-
-ggplot(averages,aes(x=avg_waiting,fill=schedalg)) + geom_density(alpha = 0.5) + facet_wrap(~total_patrons, ncol = 1, scales = "free") + 
-  facetted_pos_scales(
-    x = list(
-      total_patrons == 5 ~ scale_x_continuous(limits = c(0, 50)),
-      total_patrons == 20 ~ scale_x_continuous(limits = c(0, 500)),
-      total_patrons == 50 ~ scale_x_continuous(limits = c(0, 2500))
-    )) + 
-  labs(title = "Distribution of Average Waiting Time by Workload",
-       x = "Average Waiting Time (ms)",
-       y = "Density")
-
-ggplot(averages,aes(x=avg_turnaround,fill=schedalg)) + geom_density(alpha = 0.5) + facet_wrap(~total_patrons, ncol = 1, scales = "free")  + 
-  facetted_pos_scales(
-    x = list(
-      total_patrons == 5 ~ scale_x_continuous(limits = c(30, 100)),
-      total_patrons == 20 ~ scale_x_continuous(limits = c(0, 500)),
-      total_patrons == 50 ~ scale_x_continuous(limits = c(0, 2500))
-    )) + 
-  labs(title = "Distribution of Average Turnaround Time by Workload",
-       x = "Average Turnaround Time (ms)",
-       y = "Density")
-
-
-stats_df <- averages %>% group_by(total_patrons, schedalg) %>%
-  summarise(mean_val = mean(avg_waiting),
-            median_val = median(avg_waiting), 
-            .groups = 'drop')
-
-ggplot(averages, aes(x = avg_waiting, fill = schedalg)) + 
-  geom_density(alpha = 0.5) +
-  # Add Mean lines
-  geom_vline(data = stats_df, aes(xintercept = mean_val, color = schedalg), 
-             linetype = "solid", linewidth = 0.5) +
-  # Add Median lines
-  geom_vline(data = stats_df, aes(xintercept = median_val, color = schedalg), 
-             linetype = "dashed", linewidth = 0.5) +
-  facet_wrap(~total_patrons, ncol = 1, scales = "free") + 
-  facetted_pos_scales(
-    x = list(
-      total_patrons == 5 ~ scale_x_continuous(limits = c(0, 50)),
-      total_patrons == 20 ~ scale_x_continuous(limits = c(0, 500)),
-      total_patrons == 50 ~ scale_x_continuous(limits = c(0, 2500))
-    )
-  ) +
-  labs(title = "Waiting Time Distributions with Mean (Solid) and Median (Dashed)",
-       x = "Average Waiting Time (ms)",
-       y = "Density")
-
-
-summary_plot_df <- stats_df %>% pivot_longer(cols = c(mean_val, median_val), names_to = "Metric", values_to = "Value")
-ggplot(summary_plot_df, aes(x = Value, y = schedalg, color = Metric)) +
-  geom_line(aes(group = schedalg), color = "grey") + # Connects Mean and Median with a line
-  geom_point(size = 3) +
-  facet_wrap(~total_patrons, ncol = 1, scales = "free_x") +
-  labs(title = "Mean vs Median Wait Time Gap by Algorithm",
-       x = "Waiting Time (ms)",
-       y = "Algorithm")
-
-#uses pivoted summary statistics to ensure that the mean and median were based on the exact same runs
+# Check for missing values (NAs)
+cat("Number of missing values:",sum(colSums(is.na(df))),"\n")
 ```
+
+Which correctly matches what we expect to see.
+
+### (b) Code and data is logically correct
+
+To test this we check whether all Turnaround \>= Waiting + Execution, and Response \<= Waiting. If there are 0 logic errors, then that shows that the code and data generated is valid.
+
+```{r, echo=FALSE}
+# Logical Consistency Check: Turnaround Time
+# Turnaround = Completion - Arrival. It must also be >= Waiting + Execution
+logic_check <- df %>%
+  mutate(logic_error = turnaround_time < (waiting_time + execution_time)) %>%
+  filter(logic_error == TRUE)
+
+if(nrow(logic_check) == 0) {
+  cat("0 exceptions, Validation Passed: Turnaround times are logically consistent.\n")
+} else {
+  print("Validation Failed: Found logical errors in turnaround calculations.")
+}
+
+# Response Time Check
+# Response time should never be greater than Waiting Time
+response_check <- df %>%
+  filter(response_time > waiting_time)
+
+if(nrow(response_check) == 0) {
+  cat("0 exceptions, Validation Passed: Response time is always <= total waiting time.\n")
+}
+
+```
+
+### (c) Are the workloads identical across algorithms for the same seed
+
+We tested whether the each algorithm had and identical total and type of drinks for the same seed, total_patrons pairing.
+
+```{r, echo=FALSE}
+# Verify that the 'Workload' (drinks ordered) was identical across algorithms for the same seed
+workload_validation <- df %>%
+  group_by(total_patrons, seed, patron) %>%
+  summarise(drink_count = n(), 
+            unique_algs = n_distinct(schedalg), .groups = 'drop')
+
+# If unique_algs == 4 for every patron/seed, then the workload was perfectly reproducible
+if(sum(workload_validation$unique_algs) == 4*count(workload_validation)) {cat("Passed! The workload produced was identical across algorithms for a given seed")} else {cat("Failed")}
+```
+
+# Results and Analysis
+
+## Per-Order metrics
+
+What does this mean in terms of the bar and CPU scheduling
+
+### Response time
+
+### Waiting time
+
+## Per-Patron metrics
+
+What does this mean in terms of the bar and CPU scheduling
+
+### Response and waiting time
+
+### Turnaround time
+
+### Throughput
+
+### Predictability
+
+### Fairness
+
+### Possibility of starvation
 
 ```{r}
 ggplot(df, aes(x=schedalg, y=waiting_time, fill=schedalg)) +
   geom_boxplot() +
   facet_wrap(~total_patrons, scales = "free") +
-  labs(title="Waiting Time Distribution by Algorithm")
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
+  labs(title="Per-Order Waiting Time Distribution by Algorithm (with mean)")
 
-# 1. Fit the model
-fit <- lm(waiting_time ~ schedalg + total_patrons + drink, data = df)
-
-# 2. View the significance (p-values) and magnitudes (coefficients)
-summary(fit)
-
-# 3. Check for Fairness/Starvation by plotting residuals
-plot(fit, which = 1)
+ggplot(df, aes(x=schedalg, y=response_time, fill=schedalg)) +
+  geom_boxplot() +
+  facet_wrap(~total_patrons, scales = "free") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
+  labs(title="Per-Order Response Time Distribution by Algorithm (with mean)")
 ```
+
+# Conclusions and Recommendations
+
 ```{r}
-# Compare means
-model_speed <- lm(avg_waiting ~ schedalg, data = averages)
-summary(model_speed)
-plot(model_speed)
-Anova(model_speed)
+# Using the patron-level data to see the spread of Turnaround Times
+patron_df <- df %>%
+  group_by(total_patrons, schedalg, seed, patron) %>%
+  summarise(turnaround = max(completion_time) - min(arrival_time), total_wait = sum(waiting_time), .groups = 'drop')
+
+ggplot(patron_df, aes(x=schedalg, y=total_wait, fill=schedalg)) +
+  geom_boxplot() +
+  facet_wrap(~total_patrons, scales = "free") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
+  labs(title="Per-Patron Waiting Time Distribution by Algorithm (with mean)")
+
+response_df <- df %>%
+  group_by(total_patrons, schedalg, seed, patron) %>%
+  # Filter for only the very first order they placed
+  filter(arrival_time == min(arrival_time)) %>%
+  # Calculate response time for that specific first order
+  summarise(patron_response_time = completion_time - execution_time - arrival_time,
+    .groups = 'drop')
+
+ggplot(response_df, aes(x=schedalg, y=patron_response_time, fill=schedalg)) +
+  geom_boxplot() +
+  facet_wrap(~total_patrons, scales = "free") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
+  labs(title="Per-Patron Response Time Distribution by Algorithm (with mean)")
+
+
+ggplot(patron_df, aes(x = schedalg, y = turnaround, fill = schedalg)) +
+  geom_boxplot() +
+  facet_wrap(~total_patrons, scales = "free") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red") +
+  labs(title = "Turnaround Time Spread (with mean)",
+       y = "Turnaround Time (ms)", x = "Algorithm")
 ```
 
-# Conclusions
+```{r}
+# Calculate total wait and order size per patron
+fairness_df <- df %>%
+  group_by(total_patrons, schedalg, seed, patron) %>%
+  summarise(total_wait = sum(waiting_time), 
+            order_size = n(), .groups = 'drop')
 
+ggplot(fairness_df, aes(x = order_size, y = total_wait, color = schedalg)) +
+  geom_smooth(method = "loess", se = TRUE, formula = y ~ x) + # Adds a trend line
+  facet_wrap(~total_patrons, scales = "free") +
+  labs(title = "Fairness: Total Wait Time vs. Order Size",
+       x = "Number of Drinks Ordered", y = "Total Patron Wait (ms)")
+```
 
+```{r}
+predictability_df <- fairness_df %>%
+  group_by(total_patrons, schedalg) %>%
+  summarise(CV = sd(total_wait) / mean(total_wait), .groups = 'drop')
 
+ggplot(predictability_df, aes(x = schedalg, y = CV, fill = schedalg)) +
+  geom_col() +
+  facet_wrap(~total_patrons) +
+  labs(title = "Predictability Score (Lower is Better)",
+       subtitle = "Coefficient of Variation of Patron Waiting Time",
+       y = "CV (Index of Unpredictability)")
+```
 
+```{r}
+throughput_df <- df %>%
+  group_by(total_patrons, schedalg,seed) %>%
+  summarise(throughput = n() / (max(completion_time) - min(arrival_time)), .groups = 'drop')
 
+avg_throughput_df <- throughput_df %>% group_by(total_patrons, schedalg) %>% summarise(avg_throughput = mean(throughput), .groups = 'drop')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ggplot(avg_throughput_df, aes(x = total_patrons, y = avg_throughput, fill = schedalg)) +
+  geom_col(position = "dodge") +
+  labs(title = "Throughput Efficiency Ranking by Workload",
+       x = "Total Patrons",
+       y = "Average Throughput (Patrons/ms)",
+       fill = "Algorithm")
+```
