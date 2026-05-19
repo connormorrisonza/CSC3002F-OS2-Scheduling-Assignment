@@ -6,7 +6,8 @@ date: today
 date-format: "Do MMMM YYYY"
 format: 
   pdf:
-    toc: true
+    toc: false
+    fig-pos: "H"
     fig-width: 8
     fig-height: 5
     knitr:
@@ -36,28 +37,33 @@ We will evaluate the overall success of the algorithms by comparing their perfor
 
 The goal of this assignment is to determine the CPU scheduling algorithm that, when applied to the bar setting, is to satisfy the bar owner. 
 
-In order to achieve maximum satisfaction, we need to serve as many customers in the shortest time frame (throughput), while at the same time, ensuring that all customers feel fairly treated such that they will, on average, have the best experience.
-
-Taking both of these things into account will help maximise nightly profit, while encouraging consequent visits, hopefully providing longer term success to the bar.
+In order to achieve maximum satisfaction, we need to serve as many customers in the shortest time frame (throughput), while at the same time, ensuring that all customers feel fairly treated such that they will, on average, have the best experience. Taking both of these things into account will help maximise nightly profit, while encouraging consequent visits, hopefully providing longer term success to the bar.
 
 # Methods
 
-One of the most important steps in the experimental process is creating valid and reliable data in a repeatable way. This process can be broken down into steps to first generate the data, and second, validate the data.
-
-![Optional Caption Text](Picture.png){width=100%}
-
+One of the most important steps in the experimental process is creating valid and reliable data in a repeatable way. This process can be broken down into steps to first generate the data, and second validate the data.
 
 ## Method of data generation
 
-We need to guarantee that every algorithm gets tested in the exact same circumstances. To ensure the reliability of the results, we must include multiple repetitions for each (total_patrons, scheduling_algorithm) combination. For the assumption of normality, according to the central limit theorem, it is a minimum requirement to have 30 observations per scenario. The java code given ensures that for some seed, the number of orders and the arrival time of the patrons remains constant. So we can loop from seed (1 to 30) to guaranteed unique
+To generate reliable and repeatable data we need to define, in context, what this would mean. For our results to be reliable we must first ensure that we fairly test each algorithm. We can do this by having simulations for each algorithm run with the same `seed`, `sleep_time`, `total_patrons` configuration.
 
-To ensure that we fairly tested each algorithm
+`sleep_time` describes to the Java program the resting time of the barman before processing the next order, which in this scenario is unnecessary, so we set it to 0.
 
-To generate this data for the analysis of the scheduling algorithms, the following steps were taken.
+We need a range of different `total_patrons` to test these algorithms under different workloads. The values of 5, 20, and 50 have been chosen for this experiment.
 
- - Complete the `recordCompletedOrder` function in `Barman.java` to print all of the per order metrics that the barman class provided in the format "patron,drink,priority,queue_level,seq_no,service_start_time,arrival_time,completion_time,waiting_time,imbibing_time,turnaround_time,enqueue_time,execution_time,response_time"
+According to the Central Limit Theorem, the minimum number of unique simulations required to model their distributions is 30. Meaning that we will need to test every scheduling algorithm 30 times for each value of `total_patrons`. To do this we can loop through seeds 1 to 30 for each `scheduling_algorithm`, `total_patrons` pairing.
 
- - Create a bash script that loops through
+We created a bash script @fig-bash[simulation.sh] to run through this repeated simulation process.
+
+We need to also ensure that the generated data is in a suitable format for analysing. This was done by completing the `recordCompletedOrder` function in `Barman.java` to print all of the *per-order metrics* that the barman class provided in the format "*patron,drink,priority,queue_level,seq_no,service_start_time,arrival_time,completion_time,waiting_time,imbibing_time,turnaround_time,enqueue_time,execution_time,response_time*." This output prints this for every completed drink order into the error console. We retrieve only the error console output of the application by calling `2>&1 ./dev/null` after the call of the `make` function.
+
+But before we save the metrics in a `.csv` file, we need to attach the individual simulation configuration "`total_patrons`,`schedalg`,`seed`," to the start of each line in the error console. This is done by `sed "s/^/$patrons,$schedalg,$seed,/"`. The final outputs are appended to `simulation.csv`.
+
+By running our bash script, our generation of repeatable and reliable data is complete.
+
+![Screenshot of Bash Simulation Script](simulation_bash.png){#fig-bash}
+
+## Method of data validation
 
 ```{r, include=FALSE}
 df = read_csv("simulation_results.csv")
@@ -68,7 +74,7 @@ df$priority = factor(df$priority)
 df$queue_level = factor(df$queue_level)
 ```
 
-## Method of data validation
+*The exact code/methods used to obtain results in the section can be found in `MRRCON006 Final Report.qmd`.*
 
 To validate the data and code for the analysis of the algorithms, we need to ensure that
 
@@ -95,7 +101,7 @@ Which correctly matches what we expect to see.
 
 ### (b) Code and data is logically correct
 
-To test this we check whether all Turnaround \>= Waiting + Execution, and Response \<= Waiting. If there are 0 logic errors, then that shows that the code and data generated is valid.
+To test this we check whether all $Turnaround \geq Waiting + Execution$, and $Response \leq Waiting$. If there are 0 logic errors, then the code used and data generated is valid.
 
 ```{r, echo=FALSE}
 # Logical Consistency Check: Turnaround Time
@@ -123,7 +129,7 @@ if(nrow(response_check) == 0) {
 
 ### (c) Are the workloads identical across algorithms for the same seed
 
-We tested whether the each algorithm had and identical total and type of drinks for the same seed, total_patrons pairing.
+We tested whether the each algorithm had and identical total and type of drinks for the same `seed`, `total_patrons` pairing. This confirms that our simulation script provides valid, repeatable and reliable data.
 
 ```{r, echo=FALSE}
 # Verify that the 'Workload' (drinks ordered) was identical across algorithms for the same seed
@@ -144,30 +150,10 @@ What does this mean in terms of the bar and CPU scheduling
 
 ### Response time
 
-### Waiting time
+```{r, echo=FALSE}
+#| label: fig-order-response
+#| fig-cap: "Boxplots of Per-Order Response Times"
 
-## Per-Patron metrics
-
-What does this mean in terms of the bar and CPU scheduling
-
-### Response and waiting time
-
-### Turnaround time
-
-### Throughput
-
-### Predictability
-
-### Fairness
-
-### Possibility of starvation
-
-```{r}
-ggplot(df, aes(x=schedalg, y=waiting_time, fill=schedalg)) +
-  geom_boxplot() +
-  facet_wrap(~total_patrons, scales = "free") +
-  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
-  labs(title="Per-Order Waiting Time Distribution by Algorithm (with mean)")
 
 ggplot(df, aes(x=schedalg, y=response_time, fill=schedalg)) +
   geom_boxplot() +
@@ -176,21 +162,37 @@ ggplot(df, aes(x=schedalg, y=response_time, fill=schedalg)) +
   labs(title="Per-Order Response Time Distribution by Algorithm (with mean)")
 ```
 
-# Conclusions and Recommendations
+As seen in @fig-order-response.
 
-```{r}
-# Using the patron-level data to see the spread of Turnaround Times
-patron_df <- df %>%
-  group_by(total_patrons, schedalg, seed, patron) %>%
-  summarise(turnaround = max(completion_time) - min(arrival_time), total_wait = sum(waiting_time), .groups = 'drop')
 
-ggplot(patron_df, aes(x=schedalg, y=total_wait, fill=schedalg)) +
+### Waiting time
+
+```{r, echo=FALSE}
+#| label: fig-order-waiting
+#| fig-cap: "Boxplots of Per-Order Waiting Times"
+
+ggplot(df, aes(x=schedalg, y=waiting_time, fill=schedalg)) +
   geom_boxplot() +
   facet_wrap(~total_patrons, scales = "free") +
   stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
-  labs(title="Per-Patron Waiting Time Distribution by Algorithm (with mean)")
+  labs(title="Per-Order Waiting Time Distribution by Algorithm (with mean)")
+```
 
+As seen in @fig-order-waiting
+
+## Per-Patron metrics
+
+What does this mean in terms of the bar and CPU scheduling
+
+### Response and waiting time
+
+```{r, echo=FALSE}
+#| label: fig-patron-response
+#| fig-cap: "Boxplots of Per-Patron Response Times"
+
+# Patron response time code block
 response_df <- df %>%
+  # patron-level grouping
   group_by(total_patrons, schedalg, seed, patron) %>%
   # Filter for only the very first order they placed
   filter(arrival_time == min(arrival_time)) %>%
@@ -203,8 +205,34 @@ ggplot(response_df, aes(x=schedalg, y=patron_response_time, fill=schedalg)) +
   facet_wrap(~total_patrons, scales = "free") +
   stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
   labs(title="Per-Patron Response Time Distribution by Algorithm (with mean)")
+```
 
 
+```{r, echo=FALSE}
+#| label: fig-patron-waiting
+#| fig-cap: "Boxplots of Per-Patron Waiting Times"
+
+# Patron Waiting time code block
+patron_df <- df %>% # Using the patron-level data to see the spread of Turnaround and Waiting Times
+  group_by(total_patrons, schedalg, seed, patron) %>%
+  summarise(turnaround = max(completion_time) - min(arrival_time), total_wait = sum(waiting_time), .groups = 'drop')
+
+ggplot(patron_df, aes(x=schedalg, y=total_wait, fill=schedalg)) +
+  geom_boxplot() +
+  facet_wrap(~total_patrons, scales = "free") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "red")+
+  labs(title="Per-Patron Waiting Time Distribution by Algorithm (with mean)")
+```
+
+We now analyse these figures.
+
+### Turnaround time
+
+```{r, echo=FALSE}
+#| label: fig-turnaround
+#| fig-cap: "Boxplots of Turnaround Times"
+
+# Patron turnaround code block
 ggplot(patron_df, aes(x = schedalg, y = turnaround, fill = schedalg)) +
   geom_boxplot() +
   facet_wrap(~total_patrons, scales = "free") +
@@ -213,21 +241,68 @@ ggplot(patron_df, aes(x = schedalg, y = turnaround, fill = schedalg)) +
        y = "Turnaround Time (ms)", x = "Algorithm")
 ```
 
-```{r}
+The turnaround time.
+
+## Throughput
+
+```{r,echo=FALSE}
+#| label: fig-throughput
+#| fig-cap: "Relative Throughputs compared to FCFS"
+
+# Throughput code block
+throughput_df <- df %>%
+  group_by(total_patrons, schedalg,seed) %>%
+  summarise(throughput = n() / (max(completion_time) - min(arrival_time)), .groups = 'drop')
+
+avg_throughput_df <- throughput_df %>% group_by(total_patrons, schedalg) %>% summarise(avg_throughput = mean(throughput), .groups = 'drop')
+
+relative_throughput <- avg_throughput_df %>%
+  group_by(total_patrons) %>%
+  mutate(fcfs_val = avg_throughput[schedalg == "FCFS"],
+         relative_perf = avg_throughput / fcfs_val) %>%
+  ungroup()
+
+ggplot(relative_throughput, aes(x = as.factor(total_patrons), y = relative_perf, fill = schedalg)) +
+  geom_col(position = "dodge") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") + # Baseline
+  coord_cartesian(ylim = c(0.98, 1.02)) +
+  labs(title = "Throughput Relative to FCFS",
+       subtitle = "Values > 1.0 indicate better performance than FCFS",
+       x = "Total Patrons",
+       y = "Relative Throughput (FCFS = 1.0)",
+       fill = "Algorithm")
+```
+
+The throughput results.
+
+## Fairness and Predictability
+
+```{r, echo=FALSE}
+#| label: fig-fairness
+#| fig-cap: "Trendlines of Total Waiting Time vs No. of Drinks Ordered"
+
+# Fairness (and predictability) code block
+
 # Calculate total wait and order size per patron
 fairness_df <- df %>%
   group_by(total_patrons, schedalg, seed, patron) %>%
   summarise(total_wait = sum(waiting_time), 
-            order_size = n(), .groups = 'drop')
+            drinks_ordered = n(), .groups = 'drop')
 
-ggplot(fairness_df, aes(x = order_size, y = total_wait, color = schedalg)) +
+ggplot(fairness_df, aes(x = drinks_ordered, y = total_wait, color = schedalg)) +
   geom_smooth(method = "loess", se = TRUE, formula = y ~ x) + # Adds a trend line
   facet_wrap(~total_patrons, scales = "free") +
-  labs(title = "Fairness: Total Wait Time vs. Order Size",
+  labs(title = "Fairness: Total Wait Time vs. No. of Drinks Ordered",
        x = "Number of Drinks Ordered", y = "Total Patron Wait (ms)")
 ```
 
-```{r}
+The fairness of the algorithms.
+
+```{r, echo=FALSE}
+#| label: fig-predictability 
+#| fig-cap: "Predictability Score for Patron Waiting Time"
+
+# Predictability code block
 predictability_df <- fairness_df %>%
   group_by(total_patrons, schedalg) %>%
   summarise(CV = sd(total_wait) / mean(total_wait), .groups = 'drop')
@@ -240,17 +315,13 @@ ggplot(predictability_df, aes(x = schedalg, y = CV, fill = schedalg)) +
        y = "CV (Index of Unpredictability)")
 ```
 
-```{r}
-throughput_df <- df %>%
-  group_by(total_patrons, schedalg,seed) %>%
-  summarise(throughput = n() / (max(completion_time) - min(arrival_time)), .groups = 'drop')
+Predictability of the algorithms.
 
-avg_throughput_df <- throughput_df %>% group_by(total_patrons, schedalg) %>% summarise(avg_throughput = mean(throughput), .groups = 'drop')
+## Possibility of starvation
 
-ggplot(avg_throughput_df, aes(x = total_patrons, y = avg_throughput, fill = schedalg)) +
-  geom_col(position = "dodge") +
-  labs(title = "Throughput Efficiency Ranking by Workload",
-       x = "Total Patrons",
-       y = "Average Throughput (Patrons/ms)",
-       fill = "Algorithm")
-```
+As evident in @fig-order-waiting.
+
+# Conclusions and Recommendations
+
+
+
